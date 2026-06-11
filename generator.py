@@ -106,9 +106,13 @@ Do NOT include markdown code fences (like ```json), do NOT include any extra tex
 CRITICAL FORMATTING INSTRUCTIONS:
 Do NOT use LaTeX or math markup in any text fields. 
 - Do NOT use dollar signs ($) for math.
-- Do NOT use LaTeX commands like \\ge, \\le, \\log, \\sum, etc.
+- Do NOT use LaTeX commands like \ge, \le, \log, \sum, etc.
 - Do NOT use caret notation like n^2.
 Instead, write everything in plain readable text: use ≥, ≤, >, < directly. Write exponents in words or with actual unicode characters (e.g. "O(n²)" or "O(n squared)"). Write complexities in plain form like "O(n log n)". This applies to the explanation, idea, time_complexity, and space_complexity fields.
+
+CRITICAL CODE QUALITY INSTRUCTIONS:
+- Write REAL, production-style, properly formatted multi-line code with standard indentation and line breaks for every language in the code blocks.
+- Do NOT output one-liners, compressed code, or single-line functions. Your code must be highly readable, idiomatic, and spread across multiple lines.
 
 Structure exactly like this:
 {{
@@ -120,10 +124,10 @@ Structure exactly like this:
       "name": "Approach Name",
       "idea": "Idea behind this approach",
       "code": {{
-        "python": "Python code here",
-        "java": "Java code here",
-        "cpp": "C++ code here",
-        "c": "C code here"
+        "python": "Properly formatted, multi-line, indented Python code here",
+        "java": "Properly formatted, multi-line, indented Java code here",
+        "cpp": "Properly formatted, multi-line, indented C++ code here",
+        "c": "Properly formatted, multi-line, indented C code here"
       }},
       "time_complexity": "O(...)",
       "space_complexity": "O(...)"

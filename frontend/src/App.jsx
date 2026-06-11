@@ -14,7 +14,7 @@ const ALL_PATTERNS = [
 
 function ApproachCard({ app, index }) {
   const isOldFormat = typeof app.code === 'string'
-  const languages = isOldFormat ? [app.language || 'python'] : ['python', 'java', 'cpp', 'c']
+  const languages = isOldFormat ? [app.language || 'java'] : ['java', 'cpp', 'python', 'c']
   
   const [activeLang, setActiveLang] = useState(languages[0])
 
