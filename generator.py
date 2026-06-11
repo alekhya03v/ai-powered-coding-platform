@@ -4,8 +4,8 @@ import time
 from google import genai
 import groq
 
-PRIMARY_PROVIDER = "google-genai"
-SECONDARY_PROVIDER = "groq"
+PRIMARY_PROVIDER = "groq"
+SECONDARY_PROVIDER = "google-genai"
 
 MODELS = {
     "google-genai": "gemini-3.5-flash",
