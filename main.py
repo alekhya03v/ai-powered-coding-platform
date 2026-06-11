@@ -28,9 +28,19 @@ class Problem(Base):
     source = Column(String, default="manual")
     generated = Column(JSON, nullable=True)
     pattern = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 Base.metadata.create_all(bind=engine)
+
+# Migration: ensure 'notes' column exists for older DBs
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE problems ADD COLUMN notes TEXT"))
+        conn.commit()
+    except Exception:
+        pass # Column already exists
 
 # 2. FastAPI app setup
 app = FastAPI()
@@ -139,3 +149,37 @@ def delete_problem(problem_id: int, db: Session = Depends(get_db)):
     db.delete(problem)
     db.commit()
     return {"status": "deleted", "id": problem_id}
+
+class ProblemNotesUpdate(BaseModel):
+    notes: str
+
+@app.put("/problems/{problem_id}/notes")
+def update_notes(problem_id: int, notes_in: ProblemNotesUpdate, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    problem.notes = notes_in.notes
+    db.commit()
+    return {"status": "updated"}
+
+@app.put("/problems/{problem_id}")
+def update_and_regenerate(problem_id: int, problem_in: ProblemCreate, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+        
+    # Generate new solution
+    problem_text = f"Title: {problem_in.title}\n\nDescription:\n{problem_in.description}" if problem_in.title else problem_in.description
+    generated_data = generate_solution(problem_text)
+    
+    final_title = problem_in.title
+    if not final_title and not generated_data.get("error"):
+        final_title = generated_data.get("title")
+        
+    problem.title = final_title
+    problem.description = problem_in.description
+    problem.generated = generated_data
+    
+    db.commit()
+    db.refresh(problem)
+    return problem

@@ -377,3 +377,75 @@ body {
 .retry-btn:hover:not(:disabled) {
   background-color: #d35400;
 }
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.retry-btn-inline {
+  background-color: #e67e22;
+}
+
+.retry-btn-inline:hover:not(:disabled) {
+  background-color: #d35400;
+}
+
+.view-edit-section {
+  margin-bottom: 2rem;
+}
+
+.regenerate-btn {
+  background-color: #e67e22;
+}
+
+.regenerate-btn:hover:not(:disabled) {
+  background-color: #d35400;
+}
+
+.notes-card {
+  border-top: 4px solid #f1c40f;
+}
+
+.notes-input {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.notes-input:focus {
+  outline: none;
+  border-color: #f1c40f;
+}
+
+.notes-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-notes-btn {
+  background-color: #f1c40f;
+  color: #333;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-notes-btn:hover:not(:disabled) {
+  background-color: #f39c12;
+}
+
+.save-notes-btn:disabled {
+  background-color: #f5e4a9;
+  cursor: not-allowed;
+}

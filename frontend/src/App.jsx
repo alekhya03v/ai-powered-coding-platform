@@ -62,6 +62,13 @@ function App() {
   const [selectedProblemId, setSelectedProblemId] = useState(null)
   const [viewProblem, setViewProblem] = useState(null)
   const [generatedProblem, setGeneratedProblem] = useState(null)
+  
+  // Edit & Notes State
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
 
   const fetchHistory = async () => {
     try {
@@ -78,7 +85,7 @@ function App() {
   }, [])
 
   const handleGenerate = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     if (!description.trim()) return
 
     setLoading(true)
@@ -109,6 +116,9 @@ function App() {
       const res = await fetch(`${API_URL}/problems/${id}`)
       const data = await res.json()
       setViewProblem(data)
+      setEditTitle(data.title || '')
+      setEditDescription(data.description || '')
+      setNotes(data.notes || '')
     } catch (e) {
       console.error('Failed to load problem', e)
     } finally {
@@ -138,7 +148,43 @@ function App() {
     setGeneratedProblem(null)
   }
 
+  const handleRegenerateSaved = async () => {
+    if (!editDescription.trim()) return
+    setRegenerating(true)
+    try {
+      const res = await fetch(`${API_URL}/problems/${selectedProblemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editTitle, description: editDescription })
+      })
+      const data = await res.json()
+      setViewProblem(data)
+      fetchHistory()
+    } catch (e) {
+      console.error('Failed to regenerate', e)
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true)
+    try {
+      await fetch(`${API_URL}/problems/${selectedProblemId}/notes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      })
+      setViewProblem(prev => ({ ...prev, notes }))
+    } catch (e) {
+      console.error('Failed to save notes', e)
+    } finally {
+      setSavingNotes(false)
+    }
+  }
+
   const displayProblem = selectedProblemId ? viewProblem : generatedProblem
+  const isViewMode = selectedProblemId !== null
 
   return (
     <div className="container">
@@ -168,7 +214,7 @@ function App() {
         </aside>
 
         <main className="main-content">
-          {selectedProblemId === null ? (
+          {!isViewMode ? (
             <section className="input-section">
               <form onSubmit={handleGenerate} className="problem-form">
                 <input
@@ -186,32 +232,70 @@ function App() {
                   className="input-desc"
                   rows="6"
                 />
-                <button type="submit" disabled={loading} className="generate-btn">
-                  {loading ? 'Generating... (this takes 10-30s)' : 'Generate Solution'}
-                </button>
+                <div className="form-actions">
+                  <button type="submit" disabled={loading} className="generate-btn">
+                    {loading ? 'Generating... (10-30s)' : 'Generate Solution'}
+                  </button>
+                  {generatedProblem && !loading && (
+                    <button type="button" onClick={handleGenerate} className="generate-btn retry-btn-inline">
+                      Regenerate
+                    </button>
+                  )}
+                </div>
               </form>
             </section>
           ) : (
-            <div className="view-header">
-              <button onClick={handleNewProblem} className="back-btn">
-                ← New Problem
-              </button>
-            </div>
+            <>
+              <div className="view-header">
+                <button onClick={handleNewProblem} className="back-btn">
+                  ← New Problem
+                </button>
+              </div>
+              
+              {viewProblem && (
+                <section className="input-section view-edit-section">
+                  <div className="problem-form">
+                    <input
+                      type="text"
+                      placeholder="Optional Title (e.g. Two Sum)"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="input-title"
+                    />
+                    <textarea
+                      placeholder="Problem description"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      required
+                      className="input-desc"
+                      rows="4"
+                    />
+                    <button 
+                      onClick={handleRegenerateSaved} 
+                      disabled={regenerating} 
+                      className="generate-btn regenerate-btn"
+                    >
+                      {regenerating ? 'Regenerating...' : 'Save & Regenerate'}
+                    </button>
+                  </div>
+                </section>
+              )}
+            </>
           )}
 
           <section className="result-section">
-            {loading && (
+            {(loading || regenerating) && (
               <div className="loading-indicator">
                 <div className="spinner"></div>
-                <p>{selectedProblemId === null ? 'AI is thinking... Grab a coffee!' : 'Loading problem...'}</p>
+                <p>{!isViewMode ? 'AI is thinking... Grab a coffee!' : (regenerating ? 'Regenerating solution...' : 'Loading problem...')}</p>
               </div>
             )}
 
-            {!loading && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
+            {!(loading || regenerating) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
               <div className="solution-container">
                 <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
                 
-                {displayProblem.description && (
+                {!isViewMode && displayProblem.description && (
                   <div className="card">
                     <h3>Problem Description</h3>
                     <p className="problem-description">{displayProblem.description}</p>
@@ -240,10 +324,29 @@ function App() {
                     </ul>
                   </div>
                 )}
+
+                {isViewMode && (
+                  <div className="card notes-card">
+                    <h3>My Notes</h3>
+                    <textarea 
+                      value={notes} 
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Write your personal notes or takeaways here..."
+                      className="notes-input"
+                      rows="4"
+                    />
+                    <div className="notes-actions">
+                      <button onClick={handleSaveNotes} disabled={savingNotes} className="save-notes-btn">
+                        {savingNotes ? 'Saving...' : 'Save Notes'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
             
-            {!loading && displayProblem && displayProblem.generated && displayProblem.generated.error && (
+            {!(loading || regenerating) && displayProblem && displayProblem.generated && displayProblem.generated.error && (
                <div className="error-card">
                  <h3>Oops! We hit a snag.</h3>
                  <p>The AI service might be busy or taking a quick nap. Feel free to try again!</p>
@@ -251,7 +354,7 @@ function App() {
                    <strong>{displayProblem.generated.error}</strong>
                    {displayProblem.generated.details && <div>{displayProblem.generated.details}</div>}
                  </div>
-                 {selectedProblemId === null && (
+                 {!isViewMode && (
                    <button onClick={handleGenerate} className="generate-btn retry-btn">
                      Retry Generation
                    </button>
