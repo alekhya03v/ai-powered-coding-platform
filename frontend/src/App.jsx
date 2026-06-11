@@ -7,8 +7,12 @@ function App() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
-  const [currentProblem, setCurrentProblem] = useState(null)
   const [history, setHistory] = useState([])
+  
+  // View State
+  const [selectedProblemId, setSelectedProblemId] = useState(null)
+  const [viewProblem, setViewProblem] = useState(null)
+  const [generatedProblem, setGeneratedProblem] = useState(null)
 
   const fetchHistory = async () => {
     try {
@@ -29,7 +33,7 @@ function App() {
     if (!description.trim()) return
 
     setLoading(true)
-    setCurrentProblem(null)
+    setGeneratedProblem(null)
 
     try {
       const res = await fetch(`${API_URL}/problems`, {
@@ -38,11 +42,26 @@ function App() {
         body: JSON.stringify({ title, description })
       })
       const data = await res.json()
-      setCurrentProblem(data)
+      setGeneratedProblem(data)
       fetchHistory()
     } catch (e) {
       console.error('Failed to generate problem', e)
       alert('Error generating solution. Make sure the backend is running.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadProblem = async (id) => {
+    setSelectedProblemId(id)
+    setViewProblem(null)
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/problems/${id}`)
+      const data = await res.json()
+      setViewProblem(data)
+    } catch (e) {
+      console.error('Failed to load problem', e)
     } finally {
       setLoading(false)
     }
@@ -54,8 +73,8 @@ function App() {
     
     try {
       await fetch(`${API_URL}/problems/${id}`, { method: 'DELETE' })
-      if (currentProblem && currentProblem.id === id) {
-        setCurrentProblem(null)
+      if (selectedProblemId === id) {
+        handleNewProblem()
       }
       fetchHistory()
     } catch (err) {
@@ -63,19 +82,14 @@ function App() {
     }
   }
 
-  const loadProblem = async (id) => {
-    setLoading(true)
-    setCurrentProblem(null)
-    try {
-      const res = await fetch(`${API_URL}/problems/${id}`)
-      const data = await res.json()
-      setCurrentProblem(data)
-    } catch (e) {
-      console.error('Failed to load problem', e)
-    } finally {
-      setLoading(false)
-    }
+  const handleNewProblem = () => {
+    setSelectedProblemId(null)
+    setTitle('')
+    setDescription('')
+    setGeneratedProblem(null)
   }
+
+  const displayProblem = selectedProblemId ? viewProblem : generatedProblem
 
   return (
     <div className="container">
@@ -88,7 +102,11 @@ function App() {
           <h3>Saved Problems</h3>
           <ul className="history-list">
             {history.map((p) => (
-              <li key={p.id} onClick={() => loadProblem(p.id)} className="history-item">
+              <li 
+                key={p.id} 
+                onClick={() => loadProblem(p.id)} 
+                className={`history-item ${selectedProblemId === p.id ? 'active' : ''}`}
+              >
                 <div className="history-item-header">
                   <div className="history-title">{p.title || `Problem #${p.id}`}</div>
                   <button onClick={(e) => deleteProblem(e, p.id)} className="delete-btn" title="Delete">✕</button>
@@ -101,49 +119,57 @@ function App() {
         </aside>
 
         <main className="main-content">
-          <section className="input-section">
-            <form onSubmit={handleGenerate} className="problem-form">
-              <input
-                type="text"
-                placeholder="Optional Title (e.g. Two Sum)"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input-title"
-              />
-              <textarea
-                placeholder="Paste the problem description here..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                className="input-desc"
-                rows="6"
-              />
-              <button type="submit" disabled={loading} className="generate-btn">
-                {loading ? 'Generating... (this takes 10-30s)' : 'Generate Solution'}
+          {selectedProblemId === null ? (
+            <section className="input-section">
+              <form onSubmit={handleGenerate} className="problem-form">
+                <input
+                  type="text"
+                  placeholder="Optional Title (e.g. Two Sum)"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="input-title"
+                />
+                <textarea
+                  placeholder="Paste the problem description here..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  className="input-desc"
+                  rows="6"
+                />
+                <button type="submit" disabled={loading} className="generate-btn">
+                  {loading ? 'Generating... (this takes 10-30s)' : 'Generate Solution'}
+                </button>
+              </form>
+            </section>
+          ) : (
+            <div className="view-header">
+              <button onClick={handleNewProblem} className="back-btn">
+                ← New Problem
               </button>
-            </form>
-          </section>
+            </div>
+          )}
 
           <section className="result-section">
             {loading && (
               <div className="loading-indicator">
                 <div className="spinner"></div>
-                <p>AI is thinking... Grab a coffee!</p>
+                <p>{selectedProblemId === null ? 'AI is thinking... Grab a coffee!' : 'Loading problem...'}</p>
               </div>
             )}
 
-            {!loading && currentProblem && currentProblem.generated && !currentProblem.generated.error && (
+            {!loading && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
               <div className="solution-container">
-                <h2>{currentProblem.title || currentProblem.generated.title || 'Solution'}</h2>
+                <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
                 
                 <div className="card">
                   <h3>Explanation</h3>
-                  <p className="explanation">{currentProblem.generated.explanation}</p>
+                  <p className="explanation">{displayProblem.generated.explanation}</p>
                 </div>
 
                 <div className="approaches">
                   <h3>Approaches</h3>
-                  {currentProblem.generated.approaches?.map((app, idx) => (
+                  {displayProblem.generated.approaches?.map((app, idx) => (
                     <div key={idx} className="approach-card">
                       <h4>{idx + 1}. {app.name}</h4>
                       <p><strong>Idea:</strong> {app.idea}</p>
@@ -158,11 +184,11 @@ function App() {
                   ))}
                 </div>
 
-                {currentProblem.generated.follow_ups && currentProblem.generated.follow_ups.length > 0 && (
+                {displayProblem.generated.follow_ups && displayProblem.generated.follow_ups.length > 0 && (
                   <div className="card follow-ups">
                     <h3>Follow-up Questions</h3>
                     <ul>
-                      {currentProblem.generated.follow_ups.map((q, idx) => (
+                      {displayProblem.generated.follow_ups.map((q, idx) => (
                         <li key={idx}>{q}</li>
                       ))}
                     </ul>
@@ -171,11 +197,11 @@ function App() {
               </div>
             )}
             
-            {!loading && currentProblem && currentProblem.generated && currentProblem.generated.error && (
+            {!loading && displayProblem && displayProblem.generated && displayProblem.generated.error && (
                <div className="error-card">
                  <h3>Error Generating Solution</h3>
-                 <p>{currentProblem.generated.error}</p>
-                 {currentProblem.generated.details && <p className="error-details">{currentProblem.generated.details}</p>}
+                 <p>{displayProblem.generated.error}</p>
+                 {displayProblem.generated.details && <p className="error-details">{displayProblem.generated.details}</p>}
                </div>
             )}
           </section>
