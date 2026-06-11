@@ -9,7 +9,7 @@ SECONDARY_PROVIDER = "groq"
 
 MODELS = {
     "google-genai": "gemini-3.5-flash",
-    "groq": "llama3-70b-8192"
+    "groq": "llama-3.3-70b-versatile"
 }
 
 def _call_gemini(prompt: str) -> str:
