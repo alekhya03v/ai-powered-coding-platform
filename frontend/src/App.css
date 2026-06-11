@@ -247,9 +247,14 @@ body {
   margin-top: 0;
 }
 
-.explanation {
+.explanation,
+.problem-description {
   line-height: 1.6;
   color: #444;
+}
+
+.problem-description {
+  white-space: pre-wrap;
 }
 
 .approach-card {

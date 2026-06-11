@@ -211,6 +211,13 @@ function App() {
               <div className="solution-container">
                 <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
                 
+                {displayProblem.description && (
+                  <div className="card">
+                    <h3>Problem Description</h3>
+                    <p className="problem-description">{displayProblem.description}</p>
+                  </div>
+                )}
+
                 <div className="card">
                   <h3>Explanation</h3>
                   <p className="explanation">{displayProblem.generated.explanation}</p>
