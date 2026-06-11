@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Text, JSON, DateTime
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy import create_engine, Column, Integer, String, Text, JSON, DateTime, ForeignKey, Boolean
+from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 
-from generator import generate_solution, classify_pattern
+from generator import generate_solution, classify_pattern, suggest_questions
 
 # 1. Database setup
 load_dotenv()
@@ -31,6 +31,26 @@ class Problem(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+class SubPattern(Base):
+    __tablename__ = "sub_patterns"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pattern = Column(String, index=True) 
+    name = Column(String)
+    description = Column(String, nullable=True)
+    
+    questions = relationship("SyllabusQuestion", back_populates="sub_pattern", cascade="all, delete-orphan")
+
+class SyllabusQuestion(Base):
+    __tablename__ = "syllabus_questions"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    sub_pattern_id = Column(Integer, ForeignKey("sub_patterns.id"))
+    question_title = Column(String)
+    difficulty = Column(String, nullable=True)
+    completed = Column(Boolean, default=False)
+    linked_problem_id = Column(Integer, ForeignKey("problems.id"), nullable=True)
+    
+    sub_pattern = relationship("SubPattern", back_populates="questions")
+
 Base.metadata.create_all(bind=engine)
 
 # Migration: ensure 'notes' column exists for older DBs
@@ -42,10 +62,61 @@ with engine.connect() as conn:
     except Exception:
         pass # Column already exists
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Seed Syllabus
+SYLLABUS_SKELETON = {
+    "Arrays": ["Two-Pointer", "Sliding Window", "Prefix Sum", "Kadane's"],
+    "Strings": ["Two-Pointer Palindrome", "Sliding Window"],
+    "Binary Search": ["Classic", "Lower/Upper Bound", "Binary Search on Answers", "Search in 2D Matrix"],
+    "Stack": ["Monotonic Stack", "Expression Evaluation", "Stack Simulation", "Parenthesis & Scoring", "Stack Design", "Stack + Greedy"],
+    "Recursion": ["Linear", "Non-Linear", "Divide & Conquer", "Subsequences"],
+    "Linked List": ["Basic Operations", "Fast & Slow Pointers", "Reversal", "Merge/Sort"],
+    "Hashing": ["Frequency Map", "Prefix-Sum with Map", "Sliding Window + HashMap"],
+    "Heap": ["Top-K", "Merge K Sorted", "Heap with Sliding Window", "Huffman"],
+    "Trees": ["DFS Traversals", "BFS/Level-Order", "Lowest Common Ancestor", "Serialization"],
+    "BST": ["BST Operations", "LCA & Range Queries"],
+    "Graphs": ["BFS", "DFS", "Topological Sort", "MST/Union-Find", "Dijkstra", "Bellman-Ford", "Floyd-Warshall"],
+    "Backtracking": ["Choice-Based", "Constraint-Based", "Grid/Path", "Sequence Generation"],
+    "Greedy": ["Intervals & Reach", "Sorting/Local Choice"],
+    "Dynamic Programming": ["1D Linear", "2D Grid", "DP on Strings", "DP on Intervals", "DP on Trees", "Knapsack/Subset Sum", "DP on Stocks"],
+    "Tries": ["Basic Operations", "Word Break", "Bitwise/XOR"],
+    "Bit Manipulation": ["Basic Ops", "Subsets/Bitmask", "Advanced XOR"]
+}
+
+def seed_syllabus():
+    db = SessionLocal()
+    try:
+        if db.query(SubPattern).count() == 0:
+            for pattern, sub_patterns in SYLLABUS_SKELETON.items():
+                for sp_name in sub_patterns:
+                    sp = SubPattern(pattern=pattern, name=sp_name)
+                    db.add(sp)
+            db.commit()
+    finally:
+        db.close()
+
+seed_syllabus()
+
+# Auto-linker helper
+def auto_link_problem(db: Session, problem_id: int, title: str):
+    if not title: return
+    title_lower = title.strip().lower()
+    questions = db.query(SyllabusQuestion).all()
+    for q in questions:
+        if q.question_title.strip().lower() == title_lower:
+            q.linked_problem_id = problem_id
+            q.completed = True
+            db.commit()
+
 # 2. FastAPI app setup
 app = FastAPI()
 
-# Enable CORS for all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,14 +125,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Dependencies & Pydantic Models
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
+# 3. Pydantic Models
 class ProblemCreate(BaseModel):
     title: Optional[str] = None
     description: str
@@ -83,7 +147,6 @@ def health_check():
 
 @app.post("/problems")
 def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
-    # Prevent duplicate saves: exact title match (if provided) or exact description match
     existing_problem = None
     if problem_in.title:
         existing_problem = db.query(Problem).filter(Problem.title == problem_in.title).first()
@@ -94,21 +157,17 @@ def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
     if existing_problem:
         return existing_problem
 
-    # Prepare text for the generator
     if problem_in.title:
         problem_text = f"Title: {problem_in.title}\n\nDescription:\n{problem_in.description}"
     else:
         problem_text = problem_in.description
         
-    # Generate solution
     generated_data = generate_solution(problem_text)
     
-    # Try to extract title if one wasn't provided but is available in generated output
     final_title = problem_in.title
     if not final_title and not generated_data.get("error"):
         final_title = generated_data.get("title")
     
-    # Store in database
     db_problem = Problem(
         title=final_title,
         description=problem_in.description,
@@ -120,11 +179,14 @@ def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_problem)
     
+    # Auto-link
+    if db_problem.title:
+        auto_link_problem(db, db_problem.id, db_problem.title)
+        
     return db_problem
 
 @app.get("/problems", response_model=List[ProblemSummary])
 def get_problems(db: Session = Depends(get_db)):
-    # Fetch only the needed summary columns to avoid pulling heavy JSON objects
     problems = db.query(Problem.id, Problem.title, Problem.pattern, Problem.created_at).all()
     return [
         {
@@ -169,7 +231,6 @@ def update_and_regenerate(problem_id: int, problem_in: ProblemCreate, db: Sessio
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
         
-    # Generate new solution
     problem_text = f"Title: {problem_in.title}\n\nDescription:\n{problem_in.description}" if problem_in.title else problem_in.description
     generated_data = generate_solution(problem_text)
     
@@ -184,6 +245,10 @@ def update_and_regenerate(problem_id: int, problem_in: ProblemCreate, db: Sessio
     
     db.commit()
     db.refresh(problem)
+    
+    if problem.title:
+        auto_link_problem(db, problem.id, problem.title)
+        
     return problem
 
 @app.post("/problems/backfill-patterns")
@@ -202,3 +267,115 @@ def backfill_patterns(db: Session = Depends(get_db)):
         
     db.commit()
     return {"status": "success", "updated": count}
+
+# --- SYLLABUS ENDPOINTS ---
+@app.get("/syllabus")
+def get_syllabus(db: Session = Depends(get_db)):
+    sub_patterns = db.query(SubPattern).all()
+    tree = {}
+    for sp in sub_patterns:
+        if sp.pattern not in tree:
+            tree[sp.pattern] = []
+        
+        questions = []
+        for q in sp.questions:
+            questions.append({
+                "id": q.id,
+                "question_title": q.question_title,
+                "difficulty": q.difficulty,
+                "completed": q.completed,
+                "linked_problem_id": q.linked_problem_id
+            })
+            
+        tree[sp.pattern].append({
+            "id": sp.id,
+            "name": sp.name,
+            "description": sp.description,
+            "questions": questions
+        })
+    return tree
+
+@app.post("/syllabus/suggest/{sub_pattern_id}")
+def suggest_syllabus_questions(sub_pattern_id: int, db: Session = Depends(get_db)):
+    sp = db.query(SubPattern).filter(SubPattern.id == sub_pattern_id).first()
+    if not sp: raise HTTPException(status_code=404, detail="Sub-pattern not found")
+    
+    suggested = suggest_questions(sp.pattern, sp.name)
+    added = []
+    for q in suggested:
+        # Ignore if question already exists
+        existing = db.query(SyllabusQuestion).filter(
+            SyllabusQuestion.sub_pattern_id == sp.id,
+            SyllabusQuestion.question_title.ilike(q.get("question_title", ""))
+        ).first()
+        if existing: continue
+        
+        sq = SyllabusQuestion(
+            sub_pattern_id=sp.id,
+            question_title=q.get("question_title", "Unknown Question"),
+            difficulty=q.get("difficulty", "Medium")
+        )
+        db.add(sq)
+        added.append(sq)
+    
+    db.commit()
+    
+    # Auto-link newly suggested questions with existing problems
+    for q in added:
+        prob = db.query(Problem).filter(Problem.title.ilike(q.question_title)).first()
+        if prob:
+            q.linked_problem_id = prob.id
+            q.completed = True
+    db.commit()
+    
+    return {"status": "success", "added": len(added)}
+
+class SyllabusQuestionCreate(BaseModel):
+    sub_pattern_id: int
+    question_title: str
+    difficulty: Optional[str] = "Medium"
+
+@app.post("/syllabus/question")
+def add_custom_question(q_in: SyllabusQuestionCreate, db: Session = Depends(get_db)):
+    sq = SyllabusQuestion(
+        sub_pattern_id=q_in.sub_pattern_id,
+        question_title=q_in.question_title,
+        difficulty=q_in.difficulty
+    )
+    db.add(sq)
+    db.commit()
+    db.refresh(sq)
+    
+    prob = db.query(Problem).filter(Problem.title.ilike(sq.question_title)).first()
+    if prob:
+        sq.linked_problem_id = prob.id
+        sq.completed = True
+        db.commit()
+        db.refresh(sq)
+    
+    return sq
+
+class SyllabusQuestionUpdate(BaseModel):
+    completed: Optional[bool] = None
+    linked_problem_id: Optional[int] = None
+
+@app.patch("/syllabus/question/{q_id}")
+def update_question(q_id: int, q_in: SyllabusQuestionUpdate, db: Session = Depends(get_db)):
+    sq = db.query(SyllabusQuestion).filter(SyllabusQuestion.id == q_id).first()
+    if not sq: raise HTTPException(status_code=404, detail="Question not found")
+    
+    if q_in.completed is not None:
+        sq.completed = q_in.completed
+    if q_in.linked_problem_id is not None:
+        sq.linked_problem_id = q_in.linked_problem_id
+        
+    db.commit()
+    return {"status": "success"}
+
+@app.delete("/syllabus/question/{q_id}")
+def delete_question(q_id: int, db: Session = Depends(get_db)):
+    sq = db.query(SyllabusQuestion).filter(SyllabusQuestion.id == q_id).first()
+    if not sq: raise HTTPException(status_code=404, detail="Question not found")
+    db.delete(sq)
+    db.commit()
+    return {"status": "deleted"}

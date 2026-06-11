@@ -140,3 +140,37 @@ Problem:
         return response.text.strip()
     except Exception:
         return "Unknown"
+
+def suggest_questions(pattern: str, sub_pattern_name: str) -> list[dict]:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return []
+        
+    client = genai.Client(api_key=api_key)
+    
+    prompt = f"""
+You are an expert algorithms instructor.
+For the DSA pattern '{pattern}' and specific sub-pattern '{sub_pattern_name}', suggest exactly 4 to 5 canonical, well-known interview questions (e.g. from LeetCode or similar).
+Return ONLY a raw JSON list of objects, with NO markdown code fences (like ```json), NO extra text.
+Each object must have exactly these keys: "question_title" (string), "difficulty" (string: "Easy", "Medium", or "Hard").
+
+Example format:
+[
+  {{"question_title": "Two Sum", "difficulty": "Easy"}},
+  {{"question_title": "3Sum", "difficulty": "Medium"}}
+]
+"""
+    try:
+        response = client.models.generate_content(
+            model=CONFIG["model"],
+            contents=prompt
+        )
+        text = response.text.strip()
+        if text.startswith("```json"): text = text[7:]
+        elif text.startswith("```"): text = text[3:]
+        if text.endswith("```"): text = text[:-3]
+        text = text.strip()
+        
+        return json.loads(text)
+    except Exception:
+        return []

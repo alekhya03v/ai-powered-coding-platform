@@ -691,3 +691,182 @@ body {
 .close-btn:hover {
   color: #333;
 }
+
+/* Syllabus UI */
+.syllabus-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.syllabus-pattern-card {
+  margin-bottom: 2rem;
+}
+
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pattern-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.4rem;
+}
+
+.progress-badge {
+  background: #3498db;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.subpattern-section {
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sp-header h4 {
+  margin: 0;
+  color: #34495e;
+  font-size: 1.1rem;
+}
+
+.sp-progress {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  font-weight: 600;
+}
+
+.sp-empty {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.suggest-btn {
+  background-color: #9b59b6;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.suggest-btn:hover:not(:disabled) {
+  background-color: #8e44ad;
+}
+
+.sp-questions {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+}
+
+.q-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #f1f2f6;
+}
+
+.q-item:last-child {
+  border-bottom: none;
+}
+
+.q-item.completed .q-title,
+.q-item.completed .q-link {
+  text-decoration: line-through;
+  color: #95a5a6;
+}
+
+.q-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.q-left input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.q-title {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.q-link {
+  font-weight: 600;
+  color: #3498db;
+  text-decoration: none;
+}
+
+.q-link:hover {
+  text-decoration: underline;
+}
+
+.diff-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.diff-easy { background: #d4efdf; color: #27ae60; }
+.diff-medium { background: #fdebd0; color: #f39c12; }
+.diff-hard { background: #fadbd8; color: #c0392b; }
+
+.q-del-btn {
+  background: none;
+  border: none;
+  color: #bdc3c7;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem;
+}
+
+.q-del-btn:hover {
+  color: #e74c3c;
+}
+
+.add-custom-q {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-custom-q input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.add-custom-q button {
+  background: #ecf0f1;
+  border: none;
+  color: #2c3e50;
+  padding: 0 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-custom-q button:hover {
+  background: #bdc3c7;
+}

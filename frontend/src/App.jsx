@@ -90,7 +90,7 @@ function Dashboard({ history, onSelectProblem }) {
           <h3>Pattern Breakdown</h3>
           <div className="bar-chart">
             {Object.entries(patternCounts)
-              .sort((a, b) => b[1] - a[1]) // Sort by count descending
+              .sort((a, b) => b[1] - a[1])
               .filter(([p, count]) => count > 0)
               .map(([p, count]) => (
                 <div key={p} className="bar-row" onClick={() => setSelectedPattern(p)}>
@@ -150,8 +150,171 @@ function Dashboard({ history, onSelectProblem }) {
   )
 }
 
+function SyllabusPage({ onNavigateToProblem }) {
+  const [syllabusTree, setSyllabusTree] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [suggestingFor, setSuggestingFor] = useState(null)
+  
+  const [customQuestionInput, setCustomQuestionInput] = useState({})
+
+  const fetchSyllabus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/syllabus`)
+      const data = await res.json()
+      setSyllabusTree(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSyllabus()
+  }, [])
+
+  const handleSuggest = async (spId) => {
+    setSuggestingFor(spId)
+    try {
+      await fetch(`${API_URL}/syllabus/suggest/${spId}`, { method: 'POST' })
+      await fetchSyllabus()
+    } catch(e) {
+      console.error(e)
+    } finally {
+      setSuggestingFor(null)
+    }
+  }
+
+  const toggleComplete = async (q) => {
+    try {
+      await fetch(`${API_URL}/syllabus/question/${q.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !q.completed })
+      })
+      await fetchSyllabus()
+    } catch(e) {
+      console.error(e)
+    }
+  }
+  
+  const handleAddCustom = async (spId) => {
+    const title = customQuestionInput[spId]
+    if (!title?.trim()) return
+    try {
+      await fetch(`${API_URL}/syllabus/question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sub_pattern_id: spId, question_title: title })
+      })
+      setCustomQuestionInput({...customQuestionInput, [spId]: ''})
+      await fetchSyllabus()
+    } catch(e) { console.error(e) }
+  }
+
+  const handleDelete = async (qId) => {
+    if (!window.confirm("Delete this question?")) return
+    try {
+      await fetch(`${API_URL}/syllabus/question/${qId}`, { method: 'DELETE' })
+      await fetchSyllabus()
+    } catch(e) { console.error(e) }
+  }
+
+  if (loading) return <div className="loading-indicator"><div className="spinner"></div><p>Loading curriculum...</p></div>
+
+  return (
+    <div className="syllabus-page">
+      <div className="dashboard-header">
+        <h2>Syllabus & Curriculum</h2>
+      </div>
+      
+      {Object.entries(syllabusTree).map(([patternName, subPatterns]) => {
+        let totalQ = 0
+        let completedQ = 0
+        subPatterns.forEach(sp => {
+           totalQ += sp.questions.length
+           completedQ += sp.questions.filter(q => q.completed).length
+        })
+        
+        return (
+          <div key={patternName} className="syllabus-pattern-card dashboard-card">
+            <div className="pattern-header">
+              <h3>{patternName}</h3>
+              <span className="progress-badge">{completedQ} / {totalQ}</span>
+            </div>
+            
+            <div className="subpatterns-list">
+              {subPatterns.map(sp => {
+                const spCompleted = sp.questions.filter(q => q.completed).length
+                return (
+                  <div key={sp.id} className="subpattern-section">
+                    <div className="sp-header">
+                      <h4>{sp.name}</h4>
+                      <span className="sp-progress">{spCompleted} / {sp.questions.length}</span>
+                    </div>
+                    
+                    {sp.questions.length === 0 ? (
+                      <div className="sp-empty">
+                        <button 
+                          className="generate-btn suggest-btn" 
+                          onClick={() => handleSuggest(sp.id)}
+                          disabled={suggestingFor === sp.id}
+                        >
+                          {suggestingFor === sp.id ? 'Thinking...' : 'Suggest questions (AI)'}
+                        </button>
+                      </div>
+                    ) : (
+                      <ul className="sp-questions">
+                        {sp.questions.map(q => (
+                          <li key={q.id} className={`q-item ${q.completed ? 'completed' : ''}`}>
+                            <div className="q-left">
+                              <input 
+                                type="checkbox" 
+                                checked={q.completed} 
+                                onChange={() => toggleComplete(q)} 
+                              />
+                              {q.linked_problem_id ? (
+                                <a 
+                                  href="#" 
+                                  onClick={(e) => { e.preventDefault(); onNavigateToProblem(q.linked_problem_id) }}
+                                  className="q-link"
+                                >
+                                  {q.question_title}
+                                </a>
+                              ) : (
+                                <span className="q-title">{q.question_title}</span>
+                              )}
+                              {q.difficulty && <span className={`diff-badge diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>}
+                            </div>
+                            <button className="q-del-btn" onClick={() => handleDelete(q.id)}>✕</button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    
+                    <div className="add-custom-q">
+                      <input 
+                        type="text" 
+                        placeholder="Add custom question..." 
+                        value={customQuestionInput[sp.id] || ''}
+                        onChange={(e) => setCustomQuestionInput({...customQuestionInput, [sp.id]: e.target.value})}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddCustom(sp.id)}
+                      />
+                      <button onClick={() => handleAddCustom(sp.id)}>+</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function App() {
-  const [activePage, setActivePage] = useState('generate') // 'generate' or 'dashboard'
+  const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'syllabus'
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
@@ -302,6 +465,12 @@ function App() {
             Solve & Review
           </button>
           <button 
+            className={`nav-btn ${activePage === 'syllabus' ? 'active' : ''}`}
+            onClick={() => setActivePage('syllabus')}
+          >
+            Syllabus
+          </button>
+          <button 
             className={`nav-btn ${activePage === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActivePage('dashboard')}
           >
@@ -313,6 +482,10 @@ function App() {
       {activePage === 'dashboard' ? (
         <div className="dashboard-container">
           <Dashboard history={history} onSelectProblem={handleDashboardProblemClick} />
+        </div>
+      ) : activePage === 'syllabus' ? (
+        <div className="dashboard-container">
+          <SyllabusPage onNavigateToProblem={handleDashboardProblemClick} />
         </div>
       ) : (
         <div className="layout">
