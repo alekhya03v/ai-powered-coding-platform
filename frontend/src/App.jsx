@@ -328,7 +328,7 @@ function App() {
   // Edit & Notes State
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [regenerating, setRegenerating] = useState(false)
+  const [regeneratingId, setRegeneratingId] = useState(null)
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
 
@@ -415,22 +415,23 @@ function App() {
     setGeneratedProblem(null)
   }
 
-  const handleRegenerateSaved = async () => {
-    if (!editDescription.trim()) return
-    setRegenerating(true)
+  const handleRegenerateSaved = async (targetId, titleToSave, descToSave) => {
+    if (!descToSave.trim()) return
+    setRegeneratingId(targetId)
     try {
-      const res = await fetch(`${API_URL}/problems/${selectedProblemId}`, {
+      const res = await fetch(`${API_URL}/problems/${targetId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editTitle, description: editDescription })
+        body: JSON.stringify({ title: titleToSave, description: descToSave })
       })
       const data = await res.json()
-      setViewProblem(data)
+      
+      setViewProblem(prev => (prev && prev.id === targetId) ? data : prev)
       fetchHistory()
     } catch (e) {
       console.error('Failed to regenerate', e)
     } finally {
-      setRegenerating(false)
+      setRegeneratingId(prev => prev === targetId ? null : prev)
     }
   }
 
@@ -570,11 +571,11 @@ function App() {
                         rows="4"
                       />
                       <button 
-                        onClick={handleRegenerateSaved} 
-                        disabled={regenerating} 
+                        onClick={() => handleRegenerateSaved(selectedProblemId, editTitle, editDescription)} 
+                        disabled={regeneratingId === selectedProblemId} 
                         className="generate-btn regenerate-btn"
                       >
-                        {regenerating ? 'Regenerating...' : 'Save & Regenerate'}
+                        {regeneratingId === selectedProblemId ? 'Regenerating...' : 'Save & Regenerate'}
                       </button>
                     </div>
                   </section>
@@ -583,14 +584,14 @@ function App() {
             )}
 
             <section className="result-section">
-              {(loading || regenerating) && (
+              {(loading || regeneratingId === selectedProblemId) && (
                 <div className="loading-indicator">
                   <div className="spinner"></div>
-                  <p>{!isViewMode ? 'AI is thinking... Grab a coffee!' : (regenerating ? 'Regenerating solution...' : 'Loading problem...')}</p>
+                  <p>{!isViewMode ? 'AI is thinking... Grab a coffee!' : (regeneratingId === selectedProblemId ? 'Regenerating solution...' : 'Loading problem...')}</p>
                 </div>
               )}
 
-              {!(loading || regenerating) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
+              {!(loading || regeneratingId === selectedProblemId) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
                 <div className="solution-container">
                   <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
                   
@@ -645,7 +646,7 @@ function App() {
                 </div>
               )}
               
-              {!(loading || regenerating) && displayProblem && displayProblem.generated && displayProblem.generated.error && (
+              {!(loading || regeneratingId === selectedProblemId) && displayProblem && displayProblem.generated && displayProblem.generated.error && (
                  <div className="error-card">
                    <h3>Oops! We hit a snag.</h3>
                    <p>The AI service might be busy or taking a quick nap. Feel free to try again!</p>
