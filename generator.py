@@ -62,7 +62,7 @@ Problem:
     import time
     
     response = None
-    max_retries = 3
+    max_retries = 5
     
     try:
         for attempt in range(max_retries + 1):
@@ -74,8 +74,12 @@ Problem:
                 break
             except Exception as e:
                 if attempt < max_retries:
-                    time.sleep(2 ** attempt)  # Exponential backoff: 1, 2, 4 seconds
+                    wait_time = 2 ** (attempt + 1)  # 2, 4, 8, 16, 32 seconds
+                    print(f"[Attempt {attempt + 1}/{max_retries}] Gemini API error: {type(e).__name__} - {str(e)}")
+                    print(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
                 else:
+                    print(f"[Attempt {attempt + 1}/{max_retries + 1}] Max retries reached. Failing.")
                     raise e
                     
         text = response.text.strip()

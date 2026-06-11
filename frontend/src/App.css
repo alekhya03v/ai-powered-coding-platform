@@ -368,3 +368,12 @@ body {
   padding: 0.5rem;
   border-radius: 4px;
 }
+
+.retry-btn {
+  margin-top: 1rem;
+  background-color: #e67e22;
+}
+
+.retry-btn:hover:not(:disabled) {
+  background-color: #d35400;
+}

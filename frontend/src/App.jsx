@@ -245,9 +245,17 @@ function App() {
             
             {!loading && displayProblem && displayProblem.generated && displayProblem.generated.error && (
                <div className="error-card">
-                 <h3>Error Generating Solution</h3>
-                 <p>{displayProblem.generated.error}</p>
-                 {displayProblem.generated.details && <p className="error-details">{displayProblem.generated.details}</p>}
+                 <h3>Oops! We hit a snag.</h3>
+                 <p>The AI service might be busy or taking a quick nap. Feel free to try again!</p>
+                 <div className="error-details">
+                   <strong>{displayProblem.generated.error}</strong>
+                   {displayProblem.generated.details && <div>{displayProblem.generated.details}</div>}
+                 </div>
+                 {selectedProblemId === null && (
+                   <button onClick={handleGenerate} className="generate-btn retry-btn">
+                     Retry Generation
+                   </button>
+                 )}
                </div>
             )}
           </section>
