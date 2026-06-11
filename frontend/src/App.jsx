@@ -57,7 +57,7 @@ function ApproachCard({ app, index }) {
       <SyntaxHighlighter 
         language={activeLang === 'c' ? 'cpp' : activeLang} 
         style={vscDarkPlus}
-        customStyle={{ margin: 0, borderTopLeftRadius: !isOldFormat ? 0 : '6px', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}
+        customStyle={{ margin: 0, borderTopLeftRadius: !isOldFormat ? 0 : '6px', fontSize: '1.15rem', fontFamily: 'var(--font-mono)' }}
         className="code-block-highlighter"
       >
         {getCode()}
