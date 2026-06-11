@@ -584,14 +584,14 @@ function App() {
             )}
 
             <section className="result-section">
-              {(loading || regeneratingId === selectedProblemId) && (
+              {(loading || (selectedProblemId !== null && regeneratingId === selectedProblemId)) && (
                 <div className="loading-indicator">
                   <div className="spinner"></div>
-                  <p>{!isViewMode ? 'AI is thinking... Grab a coffee!' : (regeneratingId === selectedProblemId ? 'Regenerating solution...' : 'Loading problem...')}</p>
+                  <p>{!isViewMode ? 'AI is thinking... Grab a coffee!' : ((selectedProblemId !== null && regeneratingId === selectedProblemId) ? 'Regenerating solution...' : 'Loading problem...')}</p>
                 </div>
               )}
 
-              {!(loading || regeneratingId === selectedProblemId) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
+              {!(loading || (selectedProblemId !== null && regeneratingId === selectedProblemId)) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
                 <div className="solution-container">
                   <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
                   
@@ -646,7 +646,7 @@ function App() {
                 </div>
               )}
               
-              {!(loading || regeneratingId === selectedProblemId) && displayProblem && displayProblem.generated && displayProblem.generated.error && (
+              {!(loading || (selectedProblemId !== null && regeneratingId === selectedProblemId)) && displayProblem && displayProblem.generated && displayProblem.generated.error && (
                  <div className="error-card">
                    <h3>Oops! We hit a snag.</h3>
                    <p>The AI service might be busy or taking a quick nap. Feel free to try again!</p>
