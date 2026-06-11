@@ -48,12 +48,25 @@ Ensure the approaches array covers a brute force approach, a better approach, an
 Problem:
 {problem_text}
 """
+    import time
+    
+    response = None
+    max_retries = 3
+    
     try:
-        response = client.models.generate_content(
-            model=CONFIG["model"],
-            contents=prompt
-        )
-        
+        for attempt in range(max_retries + 1):
+            try:
+                response = client.models.generate_content(
+                    model=CONFIG["model"],
+                    contents=prompt
+                )
+                break
+            except Exception as e:
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)  # Exponential backoff: 1, 2, 4 seconds
+                else:
+                    raise e
+                    
         text = response.text.strip()
         
         # Defensive cleanup in case the model still includes markdown formatting

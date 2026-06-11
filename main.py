@@ -73,6 +73,17 @@ def health_check():
 
 @app.post("/problems")
 def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
+    # Prevent duplicate saves: exact title match (if provided) or exact description match
+    existing_problem = None
+    if problem_in.title:
+        existing_problem = db.query(Problem).filter(Problem.title == problem_in.title).first()
+    
+    if not existing_problem:
+        existing_problem = db.query(Problem).filter(Problem.description == problem_in.description).first()
+        
+    if existing_problem:
+        return existing_problem
+
     # Prepare text for the generator
     if problem_in.title:
         problem_text = f"Title: {problem_in.title}\n\nDescription:\n{problem_in.description}"
@@ -119,3 +130,12 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     return problem
+
+@app.delete("/problems/{problem_id}")
+def delete_problem(problem_id: int, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    db.delete(problem)
+    db.commit()
+    return {"status": "deleted", "id": problem_id}
