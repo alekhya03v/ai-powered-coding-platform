@@ -28,6 +28,7 @@ class Problem(Base):
     source = Column(String, default="manual")
     generated = Column(JSON, nullable=True)
     pattern = Column(String, nullable=True)
+    difficulty = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -53,11 +54,16 @@ class SyllabusQuestion(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# Migration: ensure 'notes' column exists for older DBs
+# Migration: ensure 'notes' and 'difficulty' columns exist for older DBs
 from sqlalchemy import text
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE problems ADD COLUMN notes TEXT"))
+        conn.commit()
+    except Exception:
+        pass # Column already exists
+    try:
+        conn.execute(text("ALTER TABLE problems ADD COLUMN difficulty VARCHAR"))
         conn.commit()
     except Exception:
         pass # Column already exists
@@ -129,11 +135,13 @@ app.add_middleware(
 class ProblemCreate(BaseModel):
     title: Optional[str] = None
     description: str
+    difficulty: Optional[str] = None
 
 class ProblemSummary(BaseModel):
     id: int
     title: Optional[str] = None
     pattern: Optional[str] = None
+    difficulty: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -173,7 +181,8 @@ def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
         description=problem_in.description,
         source="manual",
         generated=generated_data,
-        pattern=generated_data.get("pattern") if not generated_data.get("error") else None
+        pattern=generated_data.get("pattern") if not generated_data.get("error") else None,
+        difficulty=problem_in.difficulty
     )
     db.add(db_problem)
     db.commit()
@@ -187,12 +196,13 @@ def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
 
 @app.get("/problems", response_model=List[ProblemSummary])
 def get_problems(db: Session = Depends(get_db)):
-    problems = db.query(Problem.id, Problem.title, Problem.pattern, Problem.created_at).all()
+    problems = db.query(Problem.id, Problem.title, Problem.pattern, Problem.difficulty, Problem.created_at).all()
     return [
         {
             "id": p.id, 
             "title": p.title, 
             "pattern": p.pattern, 
+            "difficulty": p.difficulty,
             "created_at": p.created_at
         } for p in problems
     ]
@@ -222,6 +232,18 @@ def update_notes(problem_id: int, notes_in: ProblemNotesUpdate, db: Session = De
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     problem.notes = notes_in.notes
+    db.commit()
+    return {"status": "updated"}
+
+class ProblemDifficultyUpdate(BaseModel):
+    difficulty: Optional[str] = None
+
+@app.patch("/problems/{problem_id}/difficulty")
+def update_difficulty(problem_id: int, diff_in: ProblemDifficultyUpdate, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    problem.difficulty = diff_in.difficulty
     db.commit()
     return {"status": "updated"}
 

@@ -317,6 +317,7 @@ function App() {
   const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'syllabus'
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [difficulty, setDifficulty] = useState('')
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
   
@@ -362,7 +363,7 @@ function App() {
       const res = await fetch(`${API_URL}/problems`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description })
+        body: JSON.stringify({ title, description, difficulty: difficulty || null })
       })
       const data = await res.json()
       setGeneratedProblem(data)
@@ -412,6 +413,7 @@ function App() {
     setSelectedProblemId(null)
     setTitle('')
     setDescription('')
+    setDifficulty('')
     setGeneratedProblem(null)
   }
 
@@ -448,6 +450,20 @@ function App() {
       console.error('Failed to save notes', e)
     } finally {
       setSavingNotes(false)
+    }
+  }
+
+  const handleUpdateDifficulty = async (newDiff) => {
+    try {
+      await fetch(`${API_URL}/problems/${selectedProblemId}/difficulty`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ difficulty: newDiff || null })
+      })
+      setViewProblem(prev => ({ ...prev, difficulty: newDiff || null }))
+      fetchHistory()
+    } catch (e) {
+      console.error('Failed to update difficulty', e)
     }
   }
 
@@ -505,6 +521,7 @@ function App() {
                   </div>
                   <div className="history-date">
                     {p.pattern && <span className="pattern-sidebar-badge">{p.pattern}</span>}
+                    {p.difficulty && <span className={`diff-badge diff-${p.difficulty.toLowerCase()} sidebar-diff-badge`}>{p.difficulty}</span>}
                     {new Date(p.created_at).toLocaleDateString()}
                   </div>
                 </li>
@@ -517,13 +534,25 @@ function App() {
             {!isViewMode ? (
               <section className="input-section">
                 <form onSubmit={handleGenerate} className="problem-form">
-                  <input
-                    type="text"
-                    placeholder="Optional Title (e.g. Two Sum)"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="input-title"
-                  />
+                  <div className="input-header-row">
+                    <input
+                      type="text"
+                      placeholder="Optional Title (e.g. Two Sum)"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="input-title"
+                    />
+                    <select 
+                      value={difficulty} 
+                      onChange={(e) => setDifficulty(e.target.value)}
+                      className="difficulty-select"
+                    >
+                      <option value="">No Difficulty</option>
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </div>
                   <textarea
                     placeholder="Paste the problem description here..."
                     value={description}
@@ -593,7 +622,25 @@ function App() {
 
               {!(loading || (selectedProblemId !== null && regeneratingId === selectedProblemId)) && displayProblem && displayProblem.generated && !displayProblem.generated.error && (
                 <div className="solution-container">
-                  <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
+                  <div className="solution-header">
+                    <h2>{displayProblem.title || displayProblem.generated.title || 'Solution'}</h2>
+                    {isViewMode ? (
+                      <select 
+                        value={displayProblem.difficulty || ''}
+                        onChange={(e) => handleUpdateDifficulty(e.target.value)}
+                        className={`diff-badge diff-${(displayProblem.difficulty || 'none').toLowerCase()} difficulty-select-inline`}
+                      >
+                        <option value="">No Diff</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                      </select>
+                    ) : (
+                      displayProblem.difficulty && (
+                        <span className={`diff-badge diff-${displayProblem.difficulty.toLowerCase()}`}>{displayProblem.difficulty}</span>
+                      )
+                    )}
+                  </div>
                   
                   {!isViewMode && displayProblem.description && (
                     <div className="card">
