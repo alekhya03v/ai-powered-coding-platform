@@ -113,6 +113,7 @@ Instead, write everything in plain readable text: use ≥, ≤, >, < directly. W
 CRITICAL CODE QUALITY INSTRUCTIONS:
 - Write REAL, production-style, properly formatted multi-line code with standard indentation and line breaks for every language in the code blocks.
 - Do NOT output one-liners, compressed code, or single-line functions. Your code must be highly readable, idiomatic, and spread across multiple lines.
+- JSON STRING ESCAPING: Because you must provide multi-line code inside JSON strings, YOU MUST ESCAPE ALL NEWLINES explicitly using \n (backslash n) and escape all quotes using \", so that the JSON string remains structurally valid. Do NOT output raw/literal line breaks inside the code strings.
 
 Structure exactly like this:
 {{
@@ -146,7 +147,7 @@ Problem:
     try:
         text = call_llm(prompt)
         text = _extract_json(text)
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except json.JSONDecodeError as e:
         return {
             "error": "Failed to parse JSON response from the model.",
@@ -192,6 +193,6 @@ Example format:
     try:
         text = call_llm(prompt)
         text = _extract_json(text)
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except Exception:
         return []
