@@ -1,0 +1,82 @@
+import os
+import json
+from google import genai
+
+# Configuration to allow easily swapping model providers later
+CONFIG = {
+    "provider": "google-genai",
+    "model": "gemini-3.5-flash"
+}
+
+def generate_solution(problem_text: str) -> dict:
+    """
+    Generates a structured solution for a DSA problem using the configured AI model.
+    """
+    if CONFIG["provider"] != "google-genai":
+        return {"error": f"Provider '{CONFIG['provider']}' is not supported yet."}
+        
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {"error": "GEMINI_API_KEY environment variable is not set."}
+
+    client = genai.Client(api_key=api_key)
+    
+    prompt = f"""
+You are an expert algorithms instructor.
+For the following problem, provide exactly a JSON output. 
+Do NOT include markdown code fences (like ```json), do NOT include any extra text. ONLY raw JSON.
+
+Structure exactly like this:
+{{
+  "title": "Problem Title",
+  "explanation": "Clear explanation of the problem.",
+  "approaches": [
+    {{
+      "name": "Approach Name",
+      "idea": "Idea behind this approach",
+      "code": "Python code here",
+      "language": "python",
+      "time_complexity": "O(...)",
+      "space_complexity": "O(...)"
+    }}
+  ],
+  "follow_ups": ["Follow up 1", "Follow up 2"]
+}}
+
+Ensure the approaches array covers a brute force approach, a better approach, and the optimal approach.
+
+Problem:
+{problem_text}
+"""
+    try:
+        response = client.models.generate_content(
+            model=CONFIG["model"],
+            contents=prompt
+        )
+        
+        text = response.text.strip()
+        
+        # Defensive cleanup in case the model still includes markdown formatting
+        if text.startswith("```json"):
+            text = text[7:]
+        elif text.startswith("```"):
+            text = text[3:]
+            
+        if text.endswith("```"):
+            text = text[:-3]
+            
+        text = text.strip()
+        
+        return json.loads(text)
+        
+    except json.JSONDecodeError as e:
+        return {
+            "error": "Failed to parse JSON response from the model.",
+            "details": str(e),
+            "raw_text": response.text if 'response' in locals() else None
+        }
+    except Exception as e:
+        return {
+            "error": "An error occurred during content generation.",
+            "details": str(e)
+        }
