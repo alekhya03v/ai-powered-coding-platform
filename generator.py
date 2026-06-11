@@ -1,26 +1,103 @@
 import os
 import json
+import time
 from google import genai
+import groq
 
-# Configuration to allow easily swapping model providers later
-CONFIG = {
-    "provider": "google-genai",
-    "model": "gemini-3.5-flash"
+PRIMARY_PROVIDER = "google-genai"
+SECONDARY_PROVIDER = "groq"
+
+MODELS = {
+    "google-genai": "gemini-3.5-flash",
+    "groq": "llama3-70b-8192"
 }
+
+def _call_gemini(prompt: str) -> str:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
+    
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=MODELS["google-genai"],
+        contents=prompt
+    )
+    if not response or not response.text:
+        raise ValueError("Gemini returned empty response.")
+    return response.text.strip()
+
+def _call_groq(prompt: str) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is not set.")
+        
+    client = groq.Groq(api_key=api_key)
+    chat_completion = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model=MODELS["groq"],
+    )
+    content = chat_completion.choices[0].message.content
+    if not content:
+        raise ValueError("Groq returned empty text")
+    return content.strip()
+
+def _call_provider(provider: str, prompt: str) -> str:
+    if provider == "google-genai":
+        return _call_gemini(prompt)
+    elif provider == "groq":
+        return _call_groq(prompt)
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+def call_llm(prompt: str) -> str:
+    """
+    Calls the LLM using the configured primary provider. 
+    If it fails, automatically falls back to the secondary provider.
+    """
+    providers_to_try = [PRIMARY_PROVIDER, SECONDARY_PROVIDER]
+    
+    last_exception = None
+    for i, provider in enumerate(providers_to_try):
+        try:
+            print(f"[{'Primary' if i == 0 else 'Fallback'}] Attempting to generate using {provider}...")
+            
+            # Internal retry logic for transient errors (e.g., 503s or rate limits)
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    result = _call_provider(provider, prompt)
+                    print(f"Success! {provider} served the request.")
+                    return result
+                except Exception as e:
+                    if attempt < max_retries:
+                        wait_time = 2 ** (attempt + 1)
+                        print(f"[{provider} attempt {attempt + 1}/{max_retries}] Error: {e}. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"[{provider}] Max internal retries reached.")
+                        raise e # bubble up to fallback logic
+                        
+        except Exception as e:
+            print(f"Provider {provider} failed completely: {e}")
+            last_exception = e
+            
+    raise Exception(f"All providers failed. Last error: {last_exception}")
+
+def _extract_json(text: str) -> str:
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+        
+    if text.endswith("```"):
+        text = text[:-3]
+        
+    return text.strip()
 
 def generate_solution(problem_text: str) -> dict:
     """
     Generates a structured solution for a DSA problem using the configured AI model.
     """
-    if CONFIG["provider"] != "google-genai":
-        return {"error": f"Provider '{CONFIG['provider']}' is not supported yet."}
-        
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return {"error": "GEMINI_API_KEY environment variable is not set."}
-
-    client = genai.Client(api_key=api_key)
-    
     prompt = f"""
 You are an expert algorithms instructor.
 For the following problem, provide exactly a JSON output. 
@@ -62,49 +139,15 @@ Arrays, Strings, Hashing, Two Pointers, Sliding Window, Stack, Queue, Linked Lis
 Problem:
 {problem_text}
 """
-    import time
-    
-    response = None
-    max_retries = 5
-    
     try:
-        for attempt in range(max_retries + 1):
-            try:
-                response = client.models.generate_content(
-                    model=CONFIG["model"],
-                    contents=prompt
-                )
-                break
-            except Exception as e:
-                if attempt < max_retries:
-                    wait_time = 2 ** (attempt + 1)  # 2, 4, 8, 16, 32 seconds
-                    print(f"[Attempt {attempt + 1}/{max_retries}] Gemini API error: {type(e).__name__} - {str(e)}")
-                    print(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                else:
-                    print(f"[Attempt {attempt + 1}/{max_retries + 1}] Max retries reached. Failing.")
-                    raise e
-                    
-        text = response.text.strip()
-        
-        # Defensive cleanup in case the model still includes markdown formatting
-        if text.startswith("```json"):
-            text = text[7:]
-        elif text.startswith("```"):
-            text = text[3:]
-            
-        if text.endswith("```"):
-            text = text[:-3]
-            
-        text = text.strip()
-        
+        text = call_llm(prompt)
+        text = _extract_json(text)
         return json.loads(text)
-        
     except json.JSONDecodeError as e:
         return {
             "error": "Failed to parse JSON response from the model.",
             "details": str(e),
-            "raw_text": response.text if 'response' in locals() else None
+            "raw_text": text if 'text' in locals() else None
         }
     except Exception as e:
         return {
@@ -114,15 +157,6 @@ Problem:
 
 def classify_pattern(problem_text: str) -> str:
     """Classifies a problem into a specific DSA pattern."""
-    if CONFIG["provider"] != "google-genai":
-        return "Unknown"
-        
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return "Unknown"
-
-    client = genai.Client(api_key=api_key)
-    
     prompt = f"""
 Classify the following problem into exactly ONE of these patterns:
 Arrays, Strings, Hashing, Two Pointers, Sliding Window, Stack, Queue, Linked List, Trees, Graphs, Heap, Binary Search, Recursion, Backtracking, Dynamic Programming, Greedy, Bit Manipulation, Math, Tries, Intervals.
@@ -133,21 +167,12 @@ Problem:
 {problem_text}
 """
     try:
-        response = client.models.generate_content(
-            model=CONFIG["model"],
-            contents=prompt
-        )
-        return response.text.strip()
+        text = call_llm(prompt)
+        return text
     except Exception:
         return "Unknown"
 
 def suggest_questions(pattern: str, sub_pattern_name: str) -> list[dict]:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return []
-        
-    client = genai.Client(api_key=api_key)
-    
     prompt = f"""
 You are an expert algorithms instructor.
 For the DSA pattern '{pattern}' and specific sub-pattern '{sub_pattern_name}', suggest exactly 4 to 5 canonical, well-known interview questions (e.g. from LeetCode or similar).
@@ -161,16 +186,8 @@ Example format:
 ]
 """
     try:
-        response = client.models.generate_content(
-            model=CONFIG["model"],
-            contents=prompt
-        )
-        text = response.text.strip()
-        if text.startswith("```json"): text = text[7:]
-        elif text.startswith("```"): text = text[3:]
-        if text.endswith("```"): text = text[:-3]
-        text = text.strip()
-        
+        text = call_llm(prompt)
+        text = _extract_json(text)
         return json.loads(text)
     except Exception:
         return []
