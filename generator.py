@@ -36,6 +36,7 @@ Instead, write everything in plain readable text: use ≥, ≤, >, < directly. W
 Structure exactly like this:
 {{
   "title": "Problem Title",
+  "pattern": "Primary Pattern Here",
   "explanation": "Clear explanation of the problem.",
   "approaches": [
     {{
@@ -55,6 +56,8 @@ Structure exactly like this:
 }}
 
 Ensure the approaches array covers a brute force approach, a better approach, and the optimal approach.
+For the "pattern" field, pick the SINGLE best-fit primary pattern from this exact list ONLY:
+Arrays, Strings, Hashing, Two Pointers, Sliding Window, Stack, Queue, Linked List, Trees, Graphs, Heap, Binary Search, Recursion, Backtracking, Dynamic Programming, Greedy, Bit Manipulation, Math, Tries, Intervals.
 
 Problem:
 {problem_text}
@@ -108,3 +111,32 @@ Problem:
             "error": "An error occurred during content generation.",
             "details": str(e)
         }
+
+def classify_pattern(problem_text: str) -> str:
+    """Classifies a problem into a specific DSA pattern."""
+    if CONFIG["provider"] != "google-genai":
+        return "Unknown"
+        
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return "Unknown"
+
+    client = genai.Client(api_key=api_key)
+    
+    prompt = f"""
+Classify the following problem into exactly ONE of these patterns:
+Arrays, Strings, Hashing, Two Pointers, Sliding Window, Stack, Queue, Linked List, Trees, Graphs, Heap, Binary Search, Recursion, Backtracking, Dynamic Programming, Greedy, Bit Manipulation, Math, Tries, Intervals.
+
+Respond with ONLY the exact pattern string, no quotes, no extra text.
+
+Problem:
+{problem_text}
+"""
+    try:
+        response = client.models.generate_content(
+            model=CONFIG["model"],
+            contents=prompt
+        )
+        return response.text.strip()
+    except Exception:
+        return "Unknown"

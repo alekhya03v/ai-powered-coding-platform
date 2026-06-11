@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Text, JSON, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
-from generator import generate_solution
+from generator import generate_solution, classify_pattern
 
 # 1. Database setup
 load_dotenv()
@@ -113,7 +113,8 @@ def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
         title=final_title,
         description=problem_in.description,
         source="manual",
-        generated=generated_data
+        generated=generated_data,
+        pattern=generated_data.get("pattern") if not generated_data.get("error") else None
     )
     db.add(db_problem)
     db.commit()
@@ -179,7 +180,25 @@ def update_and_regenerate(problem_id: int, problem_in: ProblemCreate, db: Sessio
     problem.title = final_title
     problem.description = problem_in.description
     problem.generated = generated_data
+    problem.pattern = generated_data.get("pattern") if not generated_data.get("error") else problem.pattern
     
     db.commit()
     db.refresh(problem)
     return problem
+
+@app.post("/problems/backfill-patterns")
+def backfill_patterns(db: Session = Depends(get_db)):
+    problems = db.query(Problem).filter(Problem.pattern.is_(None)).all()
+    count = 0
+    for p in problems:
+        pattern = None
+        if p.generated and isinstance(p.generated, dict) and p.generated.get("pattern"):
+            pattern = p.generated.get("pattern")
+        else:
+            pattern = classify_pattern(p.description)
+            
+        p.pattern = pattern
+        count += 1
+        
+    db.commit()
+    return {"status": "success", "updated": count}
