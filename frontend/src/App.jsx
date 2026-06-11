@@ -3,6 +3,55 @@ import './App.css'
 
 const API_URL = 'http://localhost:8000'
 
+function ApproachCard({ app, index }) {
+  const isOldFormat = typeof app.code === 'string'
+  const languages = isOldFormat ? [app.language || 'python'] : ['python', 'java', 'cpp', 'c']
+  
+  const [activeLang, setActiveLang] = useState(languages[0])
+
+  const getCode = () => {
+    if (isOldFormat) return app.code
+    return app.code[activeLang] || `// No ${activeLang} code available`
+  }
+
+  const formatLang = (lang) => {
+    if (lang === 'cpp') return 'C++'
+    if (lang === 'python') return 'Python'
+    if (lang === 'java') return 'Java'
+    if (lang === 'c') return 'C'
+    return lang.toUpperCase()
+  }
+
+  return (
+    <div className="approach-card">
+      <h4>{index + 1}. {app.name}</h4>
+      <p><strong>Idea:</strong> {app.idea}</p>
+      <div className="complexity">
+        <span className="badge">Time: {app.time_complexity}</span>
+        <span className="badge">Space: {app.space_complexity}</span>
+      </div>
+      
+      {!isOldFormat && (
+        <div className="lang-tabs">
+          {languages.map(lang => (
+            <button 
+              key={lang} 
+              className={`lang-tab ${activeLang === lang ? 'active' : ''}`}
+              onClick={() => setActiveLang(lang)}
+            >
+              {formatLang(lang)}
+            </button>
+          ))}
+        </div>
+      )}
+      
+      <pre className={`code-block ${!isOldFormat ? 'has-tabs' : ''}`}>
+        <code>{getCode()}</code>
+      </pre>
+    </div>
+  )
+}
+
 function App() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -170,17 +219,7 @@ function App() {
                 <div className="approaches">
                   <h3>Approaches</h3>
                   {displayProblem.generated.approaches?.map((app, idx) => (
-                    <div key={idx} className="approach-card">
-                      <h4>{idx + 1}. {app.name}</h4>
-                      <p><strong>Idea:</strong> {app.idea}</p>
-                      <div className="complexity">
-                        <span className="badge">Time: {app.time_complexity}</span>
-                        <span className="badge">Space: {app.space_complexity}</span>
-                      </div>
-                      <pre className="code-block">
-                        <code>{app.code}</code>
-                      </pre>
-                    </div>
+                    <ApproachCard key={idx} app={app} index={idx} />
                   ))}
                 </div>
 

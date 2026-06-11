@@ -26,6 +26,13 @@ You are an expert algorithms instructor.
 For the following problem, provide exactly a JSON output. 
 Do NOT include markdown code fences (like ```json), do NOT include any extra text. ONLY raw JSON.
 
+CRITICAL FORMATTING INSTRUCTIONS:
+Do NOT use LaTeX or math markup in any text fields. 
+- Do NOT use dollar signs ($) for math.
+- Do NOT use LaTeX commands like \\ge, \\le, \\log, \\sum, etc.
+- Do NOT use caret notation like n^2.
+Instead, write everything in plain readable text: use ≥, ≤, >, < directly. Write exponents in words or with actual unicode characters (e.g. "O(n²)" or "O(n squared)"). Write complexities in plain form like "O(n log n)". This applies to the explanation, idea, time_complexity, and space_complexity fields.
+
 Structure exactly like this:
 {{
   "title": "Problem Title",
@@ -34,8 +41,12 @@ Structure exactly like this:
     {{
       "name": "Approach Name",
       "idea": "Idea behind this approach",
-      "code": "Python code here",
-      "language": "python",
+      "code": {{
+        "python": "Python code here",
+        "java": "Java code here",
+        "cpp": "C++ code here",
+        "c": "C code here"
+      }},
       "time_complexity": "O(...)",
       "space_complexity": "O(...)"
     }}
