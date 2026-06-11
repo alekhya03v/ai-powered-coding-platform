@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
 
 const API_URL = 'http://localhost:8000'
@@ -52,9 +54,14 @@ function ApproachCard({ app, index }) {
         </div>
       )}
       
-      <pre className={`code-block ${!isOldFormat ? 'has-tabs' : ''}`}>
-        <code>{getCode()}</code>
-      </pre>
+      <SyntaxHighlighter 
+        language={activeLang === 'c' ? 'cpp' : activeLang} 
+        style={vscDarkPlus}
+        customStyle={{ margin: 0, borderTopLeftRadius: !isOldFormat ? 0 : '6px', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}
+        className="code-block-highlighter"
+      >
+        {getCode()}
+      </SyntaxHighlighter>
     </div>
   )
 }
@@ -315,6 +322,7 @@ function SyllabusPage({ onNavigateToProblem }) {
 
 function App() {
   const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'syllabus'
+  const [theme, setTheme] = useState('dark')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [difficulty, setDifficulty] = useState('')
@@ -346,6 +354,10 @@ function App() {
   useEffect(() => {
     fetchHistory()
   }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
 
   const handleDashboardProblemClick = (id) => {
     setActivePage('generate')
@@ -492,6 +504,13 @@ function App() {
             onClick={() => setActivePage('dashboard')}
           >
             Dashboard
+          </button>
+          <button 
+            className="nav-btn theme-toggle"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title="Toggle Light/Dark Mode"
+          >
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
         </nav>
       </header>
