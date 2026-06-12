@@ -157,7 +157,7 @@ function Dashboard({ history, onSelectProblem }) {
   )
 }
 
-function RoadmapPage({ onNavigateToProblem }) {
+function PatternTrackerPage({ onNavigateToProblem }) {
   const [syllabusTree, setSyllabusTree] = useState({})
   const [loading, setLoading] = useState(true)
   const [suggestingFor, setSuggestingFor] = useState(null)
@@ -232,7 +232,7 @@ function RoadmapPage({ onNavigateToProblem }) {
   return (
     <div className="syllabus-page">
       <div className="dashboard-header">
-        <h2>Roadmap & Curriculum</h2>
+        <h2>Pattern Tracker & Curriculum</h2>
       </div>
       
       {Object.entries(syllabusTree).map(([patternName, subPatterns]) => {
@@ -323,7 +323,7 @@ function RoadmapPage({ onNavigateToProblem }) {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'roadmap'
+  const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'pattern-tracker'
   const [theme, setTheme] = useState('dark')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -496,10 +496,10 @@ function App() {
             Solve & Review
           </button>
           <button 
-            className={`nav-btn ${activePage === 'roadmap' ? 'active' : ''}`}
-            onClick={() => setActivePage('roadmap')}
+            className={`nav-btn ${activePage === 'pattern-tracker' ? 'active' : ''}`}
+            onClick={() => setActivePage('pattern-tracker')}
           >
-            Roadmap
+            Pattern Tracker
           </button>
           <button 
             className={`nav-btn ${activePage === 'dashboard' ? 'active' : ''}`}
@@ -521,9 +521,9 @@ function App() {
         <div className="dashboard-container">
           <Dashboard history={history} onSelectProblem={handleDashboardProblemClick} />
         </div>
-      ) : activePage === 'roadmap' ? (
+      ) : activePage === 'pattern-tracker' ? (
         <div className="dashboard-container">
-          <RoadmapPage onNavigateToProblem={handleDashboardProblemClick} />
+          <PatternTrackerPage onNavigateToProblem={handleDashboardProblemClick} />
         </div>
       ) : (
         <div className="layout">
