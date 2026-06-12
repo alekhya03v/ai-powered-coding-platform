@@ -1883,3 +1883,27 @@ body {
   white-space: pre !important;
   line-height: 1.6 !important;
 }
+
+
+.platform-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  text-decoration: none;
+  color: white;
+  margin-left: 0.4rem;
+  display: inline-block;
+}
+.lc-link {
+  background-color: #ffa116;
+}
+.lc-link:hover {
+  background-color: #e68a00;
+}
+.gfg-link {
+  background-color: #2f8d46;
+}
+.gfg-link:hover {
+  background-color: #246e36;
+}

@@ -157,7 +157,7 @@ function Dashboard({ history, onSelectProblem }) {
   )
 }
 
-function SyllabusPage({ onNavigateToProblem }) {
+function RoadmapPage({ onNavigateToProblem }) {
   const [syllabusTree, setSyllabusTree] = useState({})
   const [loading, setLoading] = useState(true)
   const [suggestingFor, setSuggestingFor] = useState(null)
@@ -232,7 +232,7 @@ function SyllabusPage({ onNavigateToProblem }) {
   return (
     <div className="syllabus-page">
       <div className="dashboard-header">
-        <h2>Syllabus & Curriculum</h2>
+        <h2>Roadmap & Curriculum</h2>
       </div>
       
       {Object.entries(syllabusTree).map(([patternName, subPatterns]) => {
@@ -291,6 +291,8 @@ function SyllabusPage({ onNavigateToProblem }) {
                               ) : (
                                 <span className="q-title">{q.question_title}</span>
                               )}
+                              <a href={`https://www.google.com/search?q=${encodeURIComponent(q.question_title + ' site:leetcode.com')}`} target="_blank" rel="noreferrer" className="platform-link lc-link" title="Search LeetCode">LC</a>
+                              <a href={`https://www.google.com/search?q=${encodeURIComponent(q.question_title + ' geeksforgeeks')}`} target="_blank" rel="noreferrer" className="platform-link gfg-link" title="Search GeeksforGeeks">GFG</a>
                               {q.difficulty && <span className={`diff-badge diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>}
                             </div>
                             <button className="q-del-btn" onClick={() => handleDelete(q.id)}>✕</button>
@@ -321,7 +323,7 @@ function SyllabusPage({ onNavigateToProblem }) {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'syllabus'
+  const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'roadmap'
   const [theme, setTheme] = useState('dark')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -494,10 +496,10 @@ function App() {
             Solve & Review
           </button>
           <button 
-            className={`nav-btn ${activePage === 'syllabus' ? 'active' : ''}`}
-            onClick={() => setActivePage('syllabus')}
+            className={`nav-btn ${activePage === 'roadmap' ? 'active' : ''}`}
+            onClick={() => setActivePage('roadmap')}
           >
-            Syllabus
+            Roadmap
           </button>
           <button 
             className={`nav-btn ${activePage === 'dashboard' ? 'active' : ''}`}
@@ -519,9 +521,9 @@ function App() {
         <div className="dashboard-container">
           <Dashboard history={history} onSelectProblem={handleDashboardProblemClick} />
         </div>
-      ) : activePage === 'syllabus' ? (
+      ) : activePage === 'roadmap' ? (
         <div className="dashboard-container">
-          <SyllabusPage onNavigateToProblem={handleDashboardProblemClick} />
+          <RoadmapPage onNavigateToProblem={handleDashboardProblemClick} />
         </div>
       ) : (
         <div className="layout">
