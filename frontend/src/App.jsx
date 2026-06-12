@@ -333,6 +333,7 @@ function PatternTrackerPage({ onNavigateToProblem }) {
 function App() {
   const [activePage, setActivePage] = useState('generate') // 'generate' | 'dashboard' | 'pattern-tracker'
   const [theme, setTheme] = useState('dark')
+  const [leetcodeUrl, setLeetcodeUrl] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [difficulty, setDifficulty] = useState('')
@@ -376,7 +377,7 @@ function App() {
 
   const handleGenerate = async (e) => {
     if (e) e.preventDefault()
-    if (!description.trim()) return
+    if (!description.trim() && !leetcodeUrl.trim()) return
 
     setLoading(true)
     setGeneratedProblem(null)
@@ -385,7 +386,7 @@ function App() {
       const res = await fetch(`${API_URL}/problems`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, difficulty: difficulty || null })
+        body: JSON.stringify({ title, description, difficulty: difficulty || null, leetcode_url: leetcodeUrl.trim() || null })
       })
       const data = await res.json()
       setGeneratedProblem(data)
@@ -433,6 +434,7 @@ function App() {
 
   const handleNewProblem = () => {
     setSelectedProblemId(null)
+    setLeetcodeUrl('')
     setTitle('')
     setDescription('')
     setDifficulty('')
@@ -565,16 +567,31 @@ function App() {
                 <form onSubmit={handleGenerate} className="problem-form">
                   <div className="input-header-row">
                     <input
+                      type="url"
+                      placeholder="Option 1: Paste LeetCode URL (e.g. https://leetcode.com/problems/two-sum/)"
+                      value={leetcodeUrl}
+                      onChange={(e) => setLeetcodeUrl(e.target.value)}
+                      className="input-title"
+                      style={{ flex: 1, padding: '12px' }}
+                    />
+                  </div>
+                  <div style={{ textAlign: 'center', margin: '15px 0', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                    — OR —
+                  </div>
+                  <div className="input-header-row">
+                    <input
                       type="text"
-                      placeholder="Optional Title (e.g. Two Sum)"
+                      placeholder="Option 2: Title (Optional)"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="input-title"
+                      disabled={!!leetcodeUrl}
                     />
                     <select 
                       value={difficulty} 
                       onChange={(e) => setDifficulty(e.target.value)}
                       className="difficulty-select"
+                      disabled={!!leetcodeUrl}
                     >
                       <option value="">No Difficulty</option>
                       <option value="Easy">Easy</option>
@@ -586,7 +603,8 @@ function App() {
                     placeholder="Paste the problem description here..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    required
+                    required={!leetcodeUrl}
+                    disabled={!!leetcodeUrl}
                     className="input-desc"
                     rows="6"
                   />

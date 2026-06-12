@@ -1,4 +1,7 @@
 import os
+import re
+import requests
+import json
 from datetime import datetime, timezone
 from typing import Optional, List
 
@@ -136,6 +139,7 @@ class ProblemCreate(BaseModel):
     title: Optional[str] = None
     description: str
     difficulty: Optional[str] = None
+    leetcode_url: Optional[str] = None
 
 class ProblemSummary(BaseModel):
     id: int
@@ -149,17 +153,50 @@ class ProblemSummary(BaseModel):
 
 # 4. Endpoints
 
+def fetch_leetcode_problem(url: str):
+    try:
+        slug_match = re.search(r'/problems/([^/]+)', url)
+        if not slug_match: return None
+        slug = slug_match.group(1)
+        
+        graphql_url = 'https://leetcode.com/graphql'
+        json_data = {
+            'operationName': 'questionData',
+            'variables': {'titleSlug': slug},
+            'query': 'query questionData($titleSlug: String!) { question(titleSlug: $titleSlug) { title content difficulty } }'
+        }
+        headers = {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+        resp = requests.post(graphql_url, json=json_data, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json().get('data', {}).get('question', {})
+            if data and data.get('content'):
+                import html
+                clean_content = re.sub(r'<[^>]+>', ' ', data['content'])
+                clean_content = html.unescape(clean_content)
+                data['content'] = clean_content.strip()
+                return data
+    except Exception as e:
+        print(f"Error fetching LeetCode: {e}")
+    return None
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
 @app.post("/problems")
 def create_problem(problem_in: ProblemCreate, db: Session = Depends(get_db)):
+    if problem_in.leetcode_url:
+        lc_data = fetch_leetcode_problem(problem_in.leetcode_url)
+        if lc_data:
+            problem_in.title = lc_data.get('title')
+            problem_in.description = lc_data.get('content')
+            problem_in.difficulty = lc_data.get('difficulty')
+
     existing_problem = None
     if problem_in.title:
         existing_problem = db.query(Problem).filter(Problem.title == problem_in.title).first()
     
-    if not existing_problem:
+    if not existing_problem and problem_in.description.strip():
         existing_problem = db.query(Problem).filter(Problem.description == problem_in.description).first()
         
     if existing_problem:
