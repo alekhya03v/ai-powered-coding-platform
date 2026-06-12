@@ -272,32 +272,35 @@ function PatternTrackerPage({ onNavigateToProblem }) {
                       </div>
                     ) : (
                       <ul className="sp-questions">
-                        {sp.questions.map(q => (
-                          <li key={q.id} className={`q-item ${q.completed ? 'completed' : ''}`}>
-                            <div className="q-left">
-                              <input 
-                                type="checkbox" 
-                                checked={q.completed} 
-                                onChange={() => toggleComplete(q)} 
-                              />
-                              {q.linked_problem_id ? (
-                                <a 
-                                  href="#" 
-                                  onClick={(e) => { e.preventDefault(); onNavigateToProblem(q.linked_problem_id) }}
-                                  className="q-link"
-                                >
-                                  {q.question_title}
-                                </a>
-                              ) : (
-                                <span className="q-title">{q.question_title}</span>
-                              )}
-                              <a href={`https://www.google.com/search?q=${encodeURIComponent(q.question_title + ' site:leetcode.com')}`} target="_blank" rel="noreferrer" className="platform-link lc-link" title="Search LeetCode">LC</a>
-                              <a href={`https://www.google.com/search?q=${encodeURIComponent(q.question_title + ' geeksforgeeks')}`} target="_blank" rel="noreferrer" className="platform-link gfg-link" title="Search GeeksforGeeks">GFG</a>
-                              {q.difficulty && <span className={`diff-badge diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>}
-                            </div>
-                            <button className="q-del-btn" onClick={() => handleDelete(q.id)}>✕</button>
-                          </li>
-                        ))}
+                        {sp.questions.map(q => {
+                          const slug = q.question_title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+                          return (
+                            <li key={q.id} className={`q-item ${q.completed ? 'completed' : ''}`}>
+                              <div className="q-left">
+                                <input 
+                                  type="checkbox" 
+                                  checked={q.completed} 
+                                  onChange={() => toggleComplete(q)} 
+                                />
+                                {q.linked_problem_id ? (
+                                  <a 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); onNavigateToProblem(q.linked_problem_id) }}
+                                    className="q-link"
+                                  >
+                                    {q.question_title}
+                                  </a>
+                                ) : (
+                                  <span className="q-title">{q.question_title}</span>
+                                )}
+                                <a href={`https://leetcode.com/problems/${slug}/`} target="_blank" rel="noreferrer" className="platform-link lc-link" title="Open on LeetCode">LC</a>
+                                <a href={`https://www.geeksforgeeks.org/problems/${slug}/1`} target="_blank" rel="noreferrer" className="platform-link gfg-link" title="Open on GeeksforGeeks">GFG</a>
+                                {q.difficulty && <span className={`diff-badge diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>}
+                              </div>
+                              <button className="q-del-btn" onClick={() => handleDelete(q.id)}>✕</button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     )}
                     
