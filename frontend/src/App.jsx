@@ -282,19 +282,24 @@ function PatternTrackerPage({ onNavigateToProblem }) {
                                   checked={q.completed} 
                                   onChange={() => toggleComplete(q)} 
                                 />
-                                {q.linked_problem_id ? (
+                                <a 
+                                  href={`https://leetcode.com/problems/${slug}/`}
+                                  target="_blank" rel="noreferrer"
+                                  className="q-link"
+                                  title="Open on LeetCode"
+                                >
+                                  {q.question_title}
+                                </a>
+                                {q.linked_problem_id && (
                                   <a 
                                     href="#" 
                                     onClick={(e) => { e.preventDefault(); onNavigateToProblem(q.linked_problem_id) }}
-                                    className="q-link"
+                                    style={{ marginLeft: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}
+                                    title="View saved AI Solution"
                                   >
-                                    {q.question_title}
+                                    [View AI Solution]
                                   </a>
-                                ) : (
-                                  <span className="q-title">{q.question_title}</span>
                                 )}
-                                <a href={`https://leetcode.com/problems/${slug}/`} target="_blank" rel="noreferrer" className="platform-link lc-link" title="Open on LeetCode">LC</a>
-                                <a href={`https://www.geeksforgeeks.org/problems/${slug}/1`} target="_blank" rel="noreferrer" className="platform-link gfg-link" title="Open on GeeksforGeeks">GFG</a>
                                 {q.difficulty && <span className={`diff-badge diff-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span>}
                               </div>
                               <button className="q-del-btn" onClick={() => handleDelete(q.id)}>✕</button>
