@@ -76,7 +76,16 @@ Pattern tagging and question suggestions use minimal, targeted model calls (clas
 - **Git & GitHub** – Version control and source management
 
 ---
+## Deployment
 
+The application uses a separate frontend and backend deployment architecture:
+
+- **Frontend:** React + Vite → **Vercel**
+- **Backend:** FastAPI → **Render**
+- **Database:** SQLite
+- **AI Services:** Groq (Primary) + Google Gemini (Fallback)
+
+---
 ## Project Structure
 
 ```
@@ -100,7 +109,7 @@ dsa-prep/
 ### Prerequisites
 - Python 3.13+
 - Node.js (LTS)
-- A free [Groq API key](https://console.groq.com) and/or [Google Gemini API key](https://aistudio.google.com)
+- A free [Google Gemini API key](https://aistudio.google.com)
 
 ### 1. Backend
 
