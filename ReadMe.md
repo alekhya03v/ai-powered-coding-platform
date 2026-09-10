@@ -14,18 +14,6 @@ Built as a personal interview-preparation tool: paste a problem, and the app gen
 https://ai-coding-platform-api.onrender.com/docs
 ---
 
-## Screenshots
-
-![Screenshot 1](docs/screenshot-1.jpeg)
-![Screenshot 2](docs/screenshot-2.jpeg)
-![Screenshot 3](docs/screenshot-3.jpeg)
-![Screenshot 4](docs/screenshot-4.jpeg)
-![Screenshot 5](docs/screenshot-5.jpeg)
-![Screenshot 6](docs/screenshot-6.jpeg)
-![Screenshot 7](docs/screenshot-7.jpeg)
-![Screenshot 8](docs/screenshot-8.jpeg)
-
----
 
 ## Features
 
