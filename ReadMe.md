@@ -57,16 +57,23 @@ Pattern tagging and question suggestions use minimal, targeted model calls (clas
 
 ## Tech Stack
 
-**Backend**
-- Python + FastAPI (REST API)
-- SQLAlchemy ORM + SQLite
-- google-genai (Gemini) and groq SDKs for AI generation
-- python-dotenv for configuration
+### Frontend
+- **React.js** – User interface
+- **Vite** – Frontend build tool
+- **CSS** – Styling
 
-**Frontend**
-- React + Vite
-- react-syntax-highlighter for code highlighting
-- Plain CSS with CSS variables for theming (light/dark)
+### Backend
+- **Python**
+- **FastAPI** – REST API framework
+- **SQLite** – Database
+
+### AI & LLM
+- **Google Gemini** – AI provider
+
+### Deployment & DevOps
+- **Vercel** – React/Vite frontend deployment
+- **Render** – FastAPI backend deployment
+- **Git & GitHub** – Version control and source management
 
 ---
 
