@@ -553,7 +553,6 @@ function App() {
                   <div className="history-date">
                     {p.pattern && <span className="pattern-sidebar-badge">{p.pattern}</span>}
                     {p.difficulty && <span className={`diff-badge diff-${p.difficulty.toLowerCase()} sidebar-diff-badge`}>{p.difficulty}</span>}
-                    {new Date(p.created_at).toLocaleDateString()}
                   </div>
                 </li>
               ))}
