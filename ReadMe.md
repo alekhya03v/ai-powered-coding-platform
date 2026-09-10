@@ -8,10 +8,14 @@ Built as a personal interview-preparation tool: paste a problem, and the app gen
 
 ## Live Demo
 
-### [Open DSA Prep Assistant](https://ai-coding-platform-nine.vercel.app)
+**[Open DSA Prep Assistant](https://ai-coding-platform-nine.vercel.app)**
 
-**API Documentation:**  
+## Backend API: 
+https://ai-coding-platform-api.onrender.com
+
+## API Documentation:
 https://ai-coding-platform-api.onrender.com/docs
+
 ---
 
 
