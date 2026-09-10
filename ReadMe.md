@@ -6,6 +6,12 @@ Built as a personal interview-preparation tool: paste a problem, and the app gen
 
 > Built to make DSA interview preparation faster, structured, and more organized using AI.
 
+## Live Demo
+
+### [Open DSA Prep Assistant](https://ai-coding-platform-nine.vercel.app)
+
+**API Documentation:**  
+https://ai-coding-platform-api.onrender.com/docs
 ---
 
 ## Screenshots
