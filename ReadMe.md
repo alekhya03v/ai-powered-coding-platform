@@ -70,21 +70,15 @@ Pattern tagging and question suggestions use minimal, targeted model calls (clas
 ### AI & LLM
 - **Google Gemini** – AI provider
 
-### Deployment & DevOps
-- **Vercel** – React/Vite frontend deployment
-- **Render** – FastAPI backend deployment
-- **Git & GitHub** – Version control and source management
-
 ---
+
 ## Deployment
 
-The application uses a separate frontend and backend deployment architecture:
+Both the backend and frontend are deployed on Render
 
-- **Frontend:** React + Vite → **Vercel**
-- **Backend:** FastAPI → **Render**
-- **Database:** SQLite
-- **AI Services:** Groq (Primary) + Google Gemini (Fallback)
-
+- Backend (Render Web Service)
+- Frontend (Render Static Site)
+  
 ---
 ## Project Structure
 
